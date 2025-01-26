@@ -17,6 +17,8 @@ public class TokenService {
     @Value("${jwt.secretKey}")
     private String JWT_SECRET;
 
+
+
     private SecretKey generateSecretKey() {
         return Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
     }
@@ -38,10 +40,30 @@ public class TokenService {
         // Finalizes the JWT creation by serializing it into a compact, URL-safe string
     }
 
+
+    public String generateAccessToken(UserEntity user) {
+        return Jwts.builder().subject(String.valueOf(user.getId()))
+                .claim("email", user.getEmail())
+                .claim("role", Set.of("USER"))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 10 ))
+                .signWith(generateSecretKey())
+                .compact();
+    }
+    public String generateRefreshToken(UserEntity user) {
+        return Jwts.builder().subject(String.valueOf(user.getId()))
+                .claim("email", user.getEmail())
+                .claim("role", Set.of("USER"))
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7 * 24))
+                .signWith(generateSecretKey())
+                .compact();
+    }
+
     public Long getUserIdFromToken(String token) {
         return
-                Long.parseLong(
-                        Jwts.parser()                      // 1. Create a JWT parser instance
+                    Long.parseLong(
+                            Jwts.parser()                      // 1. Create a JWT parser instance
                                 .verifyWith(generateSecretKey()) // 2. Set the secret key to verify the token's signature
                                 .build()                        // 3. Build the parser
                                 .parseSignedClaims(token)       // 4. Parse the token and extract the signed claims
@@ -49,4 +71,6 @@ public class TokenService {
                                 .getSubject()                   // 6. Extract the subject (user ID) from the payload
                 );
     }
+
+
 }
